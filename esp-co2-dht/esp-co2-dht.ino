@@ -7,9 +7,9 @@
 //   DHT data  -> D5 (GPIO14)   DHT needs its usual 4.7k–10k pull-up to 3.3 V
 //                              DHT22 in a 3-pin breakout/module already has one
 //   Status LED: onboard LED_BUILTIN (D4 / GPIO2, active-low on Wemos/NodeMCU)
-//     fast blink  = WiFi down
-//     slow pulse  = WiFi up, idle
-//     solid flash = /metrics scrape just served
+//     fast blink  = WiFi down (always)
+//     slow pulse  = WiFi up, idle          (DEBUG only)
+//     solid flash = /metrics scrape served (DEBUG only)
 //
 // Libraries (Library Manager): DHT sensor library, Sensirion I2C SCD4x 1.1.x
 // (header SensirionI2cScd4x.h — older 0.4.x names will not compile).
@@ -23,7 +23,11 @@
 #include <DHT.h>
 #include <SensirionI2cScd4x.h>
 
-#include "esp-co2-dht.h" 
+#include "esp-co2-dht.h"
+
+#ifndef DEBUG
+#define DEBUG 0
+#endif
 
 const char* WIFI_SSID = SECRET_WIFI_SSID;
 const char* WIFI_PASS = SECRET_WIFI_PASS;
@@ -57,9 +61,11 @@ constexpr uint32_t SCD_ERROR_BACKOFF_MS = 5000;
 constexpr uint32_t WIFI_CONNECT_TIMEOUT_MS = 20000;
 constexpr uint32_t WIFI_RETRY_MS = 15000;
 
+#if DEBUG
 constexpr uint32_t LED_TX_MS = 250;         // hold on after a /metrics send
 constexpr uint32_t LED_HB_ON_MS = 80;       // connected heartbeat pulse
 constexpr uint32_t LED_HB_PERIOD_MS = 2000;
+#endif
 constexpr uint32_t LED_SEARCH_HALF_MS = 150;  // disconnected blink half-period
 
 ESP8266WebServer server(80);
@@ -81,28 +87,41 @@ uint32_t lastDhtReadMs = 0;
 uint32_t lastScdPollMs = 0;
 uint32_t lastWifiRetryMs = 0;
 uint32_t scdBackoffUntilMs = 0;
+#if DEBUG
 uint32_t ledTxUntilMs = 0;
+#endif
 
 void setLed(bool on) {
   digitalWrite(LED_PIN, LED_ACTIVE_LOW ? !on : on);
 }
 
 void signalTx() {
+#if DEBUG
   ledTxUntilMs = millis() + LED_TX_MS;
   setLed(true);
+#endif
 }
 
 void updateLed() {
   const uint32_t now = millis();
+  const bool connected = (WiFi.status() == WL_CONNECTED);
+
+#if DEBUG
   if ((int32_t)(ledTxUntilMs - now) > 0) {
     setLed(true);
     return;
   }
-
-  const bool connected = (WiFi.status() == WL_CONNECTED);
   const uint32_t onMs = connected ? LED_HB_ON_MS : LED_SEARCH_HALF_MS;
   const uint32_t periodMs = connected ? LED_HB_PERIOD_MS : (2 * LED_SEARCH_HALF_MS);
   setLed((now % periodMs) < onMs);
+#else
+  // After WiFi auth the LED stays off unless DEBUG is set.
+  if (connected) {
+    setLed(false);
+    return;
+  }
+  setLed((now % (2 * LED_SEARCH_HALF_MS)) < LED_SEARCH_HALF_MS);
+#endif
 }
 
 void logSensirionError(const char* what, int16_t error) {

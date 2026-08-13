@@ -17,8 +17,8 @@ Target board: Wemos D1 mini or NodeMCU (ESP8266 Arduino core 3.1.x).
 - Also exports WiFi RSSI and uptime
 - Non-blocking WiFi reconnect; HTTP server keeps running even when WiFi or
   sensors fail
-- Onboard status LED: fast blink = WiFi down, slow pulse = connected/idle,
-  solid flash = a `/metrics` scrape was just served
+- Onboard status LED: fast blink = WiFi down. With `DEBUG` set, also a slow
+  pulse when connected/idle and a solid flash after each `/metrics` scrape
 
 ## Hardware
 
@@ -60,6 +60,7 @@ Edit `esp-co2-dht/esp-co2-dht.h` and fill in your own values before flashing:
 #define SECRET_WIFI_PASS "your-password"
 #define MY_LOCATION "room1"     // appears as location="..." label in /metrics
 #define MY_HOSTNAME "co2"       // DHCP hostname; used as a hint in logs
+#define DEBUG 0                 // 1 = LED heartbeat after WiFi auth + scrape flash
 ```
 
 The example header ships with placeholder SSID/password — never publish real
