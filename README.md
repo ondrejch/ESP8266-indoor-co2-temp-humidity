@@ -22,20 +22,32 @@ Target board: Wemos D1 mini or NodeMCU (ESP8266 Arduino core 3.1.x).
 
 ## Hardware
 
-| Part | Purpose | Connection (Wemos D1 mini / NodeMCU) |
-|---|---|---|
-| SCD41 | CO₂ / T / RH | SDA → D2 (GPIO4), SCL → D1 (GPIO5) |
-| DHT22 | T / RH | Data → D5 (GPIO14), 4.7k–10k pull-up to 3.3 V |
-| Status LED | WiFi / scrape indicator | onboard `LED_BUILTIN` (D4/GPIO2, active-low) |
+| Sensor pin      | ESP8266 board pin | GPIO   |
+| --------------- | ----------------- | ------ |
+| SCD41 VIN / 3V3 | 3V3               | —      |
+| SCD41 GND       | GND               | —      |
+| SCD41 SDA       | D2                | GPIO4  |
+| SCD41 SCL       | D1                | GPIO5  |
+| DHT VCC         | 3V3               | —      |
+| DHT GND         | GND               | —      |
+| DHT DATA        | D5                | GPIO14 |
 
-⚠️ 3.3 V logic only — do not power the SCD41 from 5 V. A 3-pin DHT22
-breakout module already includes the required pull-up.
+
+⚠️  3.3 V logic only — do not power the SCD41 from 5 V. 
+
+The DHT needs a 4.7–10 kΩ pull-up resistor from DATA to 3.3 V if it is the bare 4-pin sensor; 
+most three-pin DHT breakout boards include it.
+
+There have been reports of ESP8266 + SCD41 instability in some ESPHome/board combinations. 
+If you encounter I²C timeouts or unexplained resets, use a direct Arduino/PlatformIO 
+implementation with the Sensirion SCD4x library, reduce Wi‑Fi power-save aggressiveness, 
+and make sure the board has a stable USB supply.
 
 ## Libraries
 
 Install via Arduino Library Manager:
 
-- DHT sensor library
+- Adafruit DHT sensor library 
 - Sensirion I2C SCD4x **1.1.x** (header `SensirionI2cScd4x.h` — older 0.4.x
   names will not compile)
 
