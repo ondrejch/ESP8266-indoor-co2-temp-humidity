@@ -230,8 +230,9 @@ String locationLabels() {
 // Prometheus 0.0.4 text exposition. HELP/TYPE are always emitted; the sample
 // line is omitted when the sensor is invalid so scrapes do not publish NaN.
 void metricsHandler() {
-  String out;
+  String out, serial_out;
   out.reserve(1800);
+  serial_out.reserve(500);
 
   out += "# HELP co2_ppm Carbon dioxide concentration in parts per million\n";
   out += "# TYPE co2_ppm gauge\n";
@@ -259,6 +260,8 @@ void metricsHandler() {
     out += "} ";
     out += String(scdHumidity, 2);
     out += "\n";
+    serial_out += "scd41 co2_ppm: " + String(co2ppm) + ", " + String(scdTempC, 2) + " C, ";
+    serial_out += String(scdHumidity, 2) + "%\n";
   }
   
   out += "# HELP dht_temperature_c Temperature measured by DHT sensor in Celsius\n";
@@ -278,6 +281,7 @@ void metricsHandler() {
     out += "} ";
     out += String(dhtHumidity, 2);
     out += "\n";
+    serial_out += "dht " + String(dhtTempC, 2)+ " C, " + String(dhtHumidity, 2) + "%\n";
   }
 
   out += "# HELP esp8266_wifi_rssi_dbm WiFi received signal strength\n";
@@ -295,10 +299,12 @@ void metricsHandler() {
   out += "} ";
   out += String(millis() / 1000);
   out += "\n";
-
+  serial_out += "wifi_rssi " + String(WiFi.RSSI()) + " dbm, uptime ";
+  serial_out += String(millis() / 1000) + "s\n";
 
   server.send(200, "text/plain; version=0.0.4; charset=utf-8", out);
   signalTx();
+  Serial.println(serial_out);
 }
 
 void rootHandler() {
@@ -310,6 +316,7 @@ void rootHandler() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.println("Starting up...");
   pinMode(LED_PIN, OUTPUT);
   setLed(false);
   delay(250);
